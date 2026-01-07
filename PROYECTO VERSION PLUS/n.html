@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bodex Pro | Gestión de Inventario</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --primary: #6366f1; --secondary: #a855f7; --dark: #0f172a; --glass: rgba(255, 255, 255, 0.1); --danger: #ef4444; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: radial-gradient(circle at top, #1e1e3f, #0f172a); color: #fff; min-height: 100vh; }
+        
+        nav { display: none; justify-content: center; gap: 15px; padding: 15px; background: var(--glass); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--glass); }
+        nav button { background: transparent; border: 1px solid var(--glass); color: white; padding: 10px 18px; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        nav button:hover { background: var(--primary); }
+
+        .container { max-width: 1100px; margin: 30px auto; padding: 20px; }
+        .section { display: none; background: var(--glass); backdrop-filter: blur(15px); padding: 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); animation: fadeIn 0.4s ease; }
+        .active { display: block; }
+
+        input { width: 100%; padding: 12px; margin: 10px 0; background: rgba(0,0,0,0.3); border: 1px solid var(--glass); border-radius: 8px; color: white; box-sizing: border-box; }
+        .btn { background: linear-gradient(to right, var(--primary), var(--secondary)); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.3s; }
+        .btn-danger { background: var(--danger); color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; }
+        
+        /* Grid de Productos */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
+        .card { background: rgba(255,255,255,0.05); border-radius: 15px; padding: 15px; border: 1px solid rgba(255,255,255,0.1); text-align: center; position: relative; }
+        .card img { width: 100%; border-radius: 10px; height: 180px; object-fit: cover; margin-bottom: 10px; }
+        
+        /* Estilos de Agotado */
+        .exhausted { opacity: 0.5; filter: grayscale(1); }
+        .sold-out-tag { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg); background: var(--danger); color: white; padding: 10px 20px; font-weight: bold; border: 2px solid white; z-index: 10; border-radius: 5px; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid var(--glass); }
+    </style>
+</head>
+<body>
+
+<nav id="navBar">
+    <button onclick="mostrar('inventario')"><i class="fas fa-boxes"></i> Catálogo</button>
+    <button onclick="mostrar('pedidos')"><i class="fas fa-list-check"></i> Mi Pedido</button>
+    <button onclick="mostrar('contacto')"><i class="fas fa-info-circle"></i> Contacto</button>
+    <button onclick="location.reload()" style="color: #ff4444;"><i class="fas fa-power-off"></i> Salir</button>
+</nav>
+
+<div class="container">
+    <div id="login" class="section active">
+        <h2 style="text-align:center">Acceso Bodex</h2>
+        <input id="loginUser" placeholder="Usuario">
+        <input id="loginPass" type="password" placeholder="Contraseña">
+        <button class="btn" onclick="iniciarSesion()">Entrar</button>
+        <p style="text-align:center">¿No tienes cuenta? <a href="#" onclick="mostrar('registro')" style="color:var(--secondary)">Regístrate</a></p>
+    </div>
+
+    <div id="registro" class="section">
+        <h2>Crear Cuenta</h2>
+        <input id="regUser" placeholder="Nuevo Usuario">
+        <input id="regPass" type="password" placeholder="Contraseña">
+        <button class="btn" style="background:var(--secondary)" onclick="registrar()">Registrar Usuario</button>
+    </div>
+
+    <div id="inventario" class="section">
+        <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; margin-bottom: 30px; border: 1px dashed var(--primary);">
+            <h3><i class="fas fa-plus"></i> Agregar Nuevo Producto</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <input id="newNombre" placeholder="Nombre">
+                <input id="newPrecio" type="number" placeholder="Precio ($)">
+                <input id="newStock" type="number" placeholder="Stock">
+                <input id="newImg" type="file" accept="image/*" style="padding:7px">
+            </div>
+            <button class="btn" style="margin-top:10px" onclick="crearProducto()">Subir al Sistema</button>
+        </div>
+
+        <h2>Catálogo de Productos</h2>
+        <div class="grid" id="lista"></div>
+    </div>
+
+    <div id="pedidos" class="section">
+        <h2><i class="fas fa-shopping-cart"></i> Mi Pedido</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Subtotal</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="tabla"></tbody>
+        </table>
+        <div style="text-align: right; margin-top: 20px;">
+            <h3>Total: <span id="totalLabel" style="color:var(--secondary)">$0</span></h3>
+            <button class="btn" style="width: 200px; background: #22c55e;" onclick="confirmarPedido()">Confirmar Pedido</button>
+        </div>
+    </div>
+
+    <div id="contacto" class="section">
+        <h2>Centro de Soporte</h2>
+        <p><i class="fas fa-phone"></i> +52 555-BODEX-01</p>
+        <p><i class="fas fa-envelope"></i> ayuda@bodex.com</p>
+        <p><i class="fas fa-map-marker-alt"></i> Parque Industrial Naucalpan De Juarez, Bodega 7</p>
+    </div>
+</div>
+
+<script>
+let usuarios = JSON.parse(localStorage.getItem('bd_u')) || [{u:'admin', p:'1234'}];
+let productos = JSON.parse(localStorage.getItem('bd_p')) || [
+    {id: 1, nombre: 'Taladro Pro', precio: 1500, stock: 10, img: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=400'},
+    {id: 2, nombre: 'Sierra Circular', precio: 2200, stock: 0, img: 'https://images.unsplash.com/photo-1540104253308-4198c0879483?w=400'}
+];
+let pedidoActual = [];
+
+function mostrar(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+function registrar() {
+    const u = document.getElementById('regUser').value;
+    const p = document.getElementById('regPass').value;
+    if(u && p) {
+        usuarios.push({u, p});
+        localStorage.setItem('bd_u', JSON.stringify(usuarios));
+        alert("Usuario registrado");
+        mostrar('login');
+    }
+}
+
+function iniciarSesion() {
+    const u = document.getElementById('loginUser').value;
+    const p = document.getElementById('loginPass').value;
+    if(usuarios.find(x => x.u === u && x.p === p)) {
+        document.getElementById('navBar').style.display = 'flex';
+        mostrar('inventario');
+        render();
+    } else alert("Datos incorrectos");
+}
+
+function crearProducto() {
+    const n = document.getElementById('newNombre').value;
+    const pr = document.getElementById('newPrecio').value;
+    const s = document.getElementById('newStock').value;
+    const im = document.getElementById('newImg').files[0];
+
+    if(!n || !pr || !s || !im) return alert("Faltan datos o imagen");
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        productos.push({ id: Date.now(), nombre: n, precio: pr, stock: s, img: e.target.result });
+        actualizarLocal();
+        alert("Producto agregado");
+    };
+    reader.readAsDataURL(im);
+}
+
+function render() {
+    const l = document.getElementById('lista');
+    l.innerHTML = productos.map((p, i) => {
+        const ag = p.stock <= 0;
+        return `
+            <div class="card ${ag ? 'exhausted' : ''}">
+                ${ag ? '<div class="sold-out-tag">AGOTADO</div>' : ''}
+                <img src="${p.img}">
+                <h3>${p.nombre}</h3>
+                <p>$${p.precio} | Stock: ${p.stock}</p>
+                <div style="display:flex; gap:5px">
+                    <button class="btn" onclick="solicitar(${i})" ${ag ? 'disabled' : ''}>Solicitar</button>
+                    <button class="btn-danger" onclick="eliminarCatalogo(${i})"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+function solicitar(i) {
+    const p = productos[i];
+    const c = parseInt(prompt(`Cantidad de ${p.nombre} (Disponibles: ${p.stock})`));
+    if(c > 0 && c <= p.stock) {
+        productos[i].stock -= c;
+        pedidoActual.push({ index: i, nombre: p.nombre, cant: c, sub: c * p.precio });
+        actualizarLocal();
+        renderTabla();
+    } else alert("Cantidad no válida");
+}
+
+function eliminarCatalogo(i) {
+    if(confirm("¿Eliminar producto del catálogo?")) {
+        productos.splice(i, 1);
+        actualizarLocal();
+    }
+}
+
+function quitarPedido(i) {
+    const item = pedidoActual[i];
+    productos[item.index].stock = parseInt(productos[item.index].stock) + item.cant;
+    pedidoActual.splice(i, 1);
+    actualizarLocal();
+    renderTabla();
+}
+
+function renderTabla() {
+    const t = document.getElementById('tabla');
+    let total = 0;
+    t.innerHTML = pedidoActual.map((item, i) => {
+        total += item.sub;
+        return `<tr><td>${item.nombre}</td><td>${item.cant}</td><td>$${item.sub}</td>
+                <td><button class="btn-danger" onclick="quitarPedido(${i})">X</button></td></tr>`;
+    }).join('');
+    document.getElementById('totalLabel').innerText = `$${total}`;
+}
+
+function actualizarLocal() {
+    localStorage.setItem('bd_p', JSON.stringify(productos));
+    render();
+}
+
+function confirmarPedido() {
+    if(pedidoActual.length === 0) return alert("Pedido vacío");
+    alert("¡Pedido confirmado!");
+    pedidoActual = [];
+    renderTabla();
+    mostrar('inventario');
+}
+</script>
+</body>
+</html>

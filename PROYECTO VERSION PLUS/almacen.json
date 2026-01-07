@@ -1,0 +1,9 @@
+{
+    "productos": [
+        {
+            "nombre": "cierra circular",
+            "stock": 30,
+            "precio": 2000.0
+        }
+    ]
+}
